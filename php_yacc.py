@@ -1,16 +1,5 @@
 from final_lex import symbol_table
 
-def flatten(l):
-    output = []
-    def removeNestings(l):
-        for i in l:
-            if type(i) == list:
-                removeNestings(i)
-            else:
-                output.append(i)
-    removeNestings(l)
-    return output
-
 tokens = [
 'ARRAY', 'AS', 'BREAK', 'CASE',
 'CONST', 'CONTINUE',
@@ -30,18 +19,70 @@ tokens = [
 
 start = 'start'
 
-def p_error(p):
-
-    # get formatted representation of stack
-    stack_state_str = ' '.join([symbol.type for symbol in parser.symstack][1:])
-
-    print('Syntax error in input! Parser State:{} {} . {}'
-          .format(parser.state,
-                  stack_state_str,
-                  p))
+# def p_error(p):
+#     print('Syntax error in input! Parser State')
 
 def p_start(p):
-	'''start : OPENTAG begin'''
+	'''start : OPENTAG statement'''
 
-def p_begin(p):
-	'''begin : IDENTIFIER'''
+def p_statement(p):
+	'''statement : assignment statement
+				   | postfixExpr ";" statement
+				   | prefixExpr ";" statement
+				   | end
+	'''
+	p[0] = p[1:]
+
+def p_assignment(p):
+	'''assignment : IDENTIFIER assignmentOperator arithmeticExp ";" 
+				  | IDENTIFIER assignmentOperator postfixExpr ";"
+				  | IDENTIFIER assignmentOperator prefixExpr ";"
+	'''
+	p[0] = p[1:]
+
+def p_operator(p):
+	''' operator : '+'
+				 | '-'
+				 | '*'
+				 | '/'
+	'''
+
+def p_assignmentOperator(p):
+    '''assignmentOperator : '='
+    | ASS_MUL
+    | ASS_DIV
+    | ASS_MOD
+    | ASS_ADD
+    | ASS_SUB
+    '''
+    p[0] = p[1:]
+
+def p_arithmeticExp(p):
+	''' arithmeticExp : args operator args
+						| args operator postfixExpr
+						| args operator prefixExpr
+						| args
+						| SINGLE_STRING
+						| DOUBLE_STRING
+	'''
+	p[0] = p[1:]
+
+def p_args(p):
+	'''args : IDENTIFIER
+			| LNUM_LITERAL
+			| DNUM_LITERAL
+	'''
+	p[0] = p[1:]
+
+def p_postfixExpr(p):
+	'''postfixExpr : IDENTIFIER OP_INC 
+				   | IDENTIFIER OP_DEC 
+	'''
+
+def p_prefixExpr(p):
+	'''prefixExpr : OP_INC IDENTIFIER  
+				   | OP_DEC IDENTIFIER 
+	'''
+
+def p_end(p):
+	'''end : CLOSETAG'''
