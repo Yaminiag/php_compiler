@@ -11,7 +11,7 @@ parser = yacc.yacc(debug=0)
 with open('input.php','r') as f:
     input_str = f.read()
 
-print("\n\n\n==========Tokens Generated============")
+print("\n\n\n========Tokens Generated============")
 lex.input(input_str)
  # Tokenize
 while True:
