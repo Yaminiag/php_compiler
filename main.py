@@ -1,5 +1,5 @@
-from final_lex import *
-from final_yacc import *
+from php_lex import *
+from php_yacc import *
 
 import sys
 import ply.lex as lex
