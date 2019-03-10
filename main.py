@@ -9,7 +9,7 @@ lex.lex(debug=0)
 parser = yacc.yacc(debug=0)
 
 with open('input.php','r') as f:
-    input_str = f.read()
+	input_str = f.read()
 
 print("\n\n\n========Tokens Generated============")
 lex.input(input_str)
@@ -17,13 +17,13 @@ lex.input(input_str)
 while True:
  tok = lex.token()
  if not tok:
-     break      # No more input
- print(tok)
+	 break      # No more input
+ print(tok) 
 
-# x = parser.parse(input_str)
-# print("\n\n\n============Parser Output============")
-# print(x)
+x = parser.parse(input_str)
+print("\n\n\n============Parser Output============")
+print(x)
 print("\n\n\n============Symbol Table=============")
 for symbol in symbol_table:
-    if("token" in symbol_table[symbol]):
-        print(symbol_table[symbol])
+	if("token" in symbol_table[symbol]):
+		print(symbol_table[symbol])

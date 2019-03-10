@@ -1,4 +1,18 @@
-from final_lex import symbol_table
+from php_lex import symbol_table
+
+def flatten(l):
+    output = []
+    def removeNestings(l):
+        for i in l:
+            if type(i) == list:
+                removeNestings(i)
+            else:
+                output.append(i)
+    if type(l) == list:
+        removeNestings(l)
+    else:
+        output.append(l)
+    return output
 
 tokens = [
 'ARRAY', 'AS', 'BREAK',
@@ -19,8 +33,93 @@ tokens = [
 
 start = 'start'
 
-# def p_error(p):
-#     print('Syntax error in input! Parser State')+
+def p_error(p):
+    print('Syntax error in input! Parser State')
+	
+def p_args(p):
+	'''args : IDENTIFIER
+			| LNUM_LITERAL
+			| DNUM_LITERAL
+			| SINGLE_STRING
+			| DOUBLE_STRING
+			| BOOL_LITERAL
+			| postfixExpr
+			| prefixExpr
+	'''
+	p[0] = p[1:]
+	
+def p_muloperator(p):
+	''' muloperator : '*'
+				 | '/'
+				 | '%'
+	'''
+	
+def p_addoperator(p):
+	''' addoperator : '+'
+				 | '-'
+	'''
+
+def p_MultiplicativeExpression(p):
+    '''MultiplicativeExpression : args
+    | MultiplicativeExpression muloperator args
+    '''
+    if len(list(p))==4:
+        print(p[:])
+        t1 = flatten(p[1])[0]
+        t2 = flatten(p[3])[0]
+        if t1 in symbol_table:
+            if symbol_table[t1]['valid'] or not symbol_table[t1]['valid']:
+                t1 = symbol_table[t1]['value']
+            else:
+                print("error line:",symbol_table[t1]["token"],"   rhs = ", t1)
+
+        if t2 in symbol_table:
+            if symbol_table[t2]['valid'] or not symbol_table[t2]['valid']:
+                t2 = symbol_table[t2]['value']
+            else:
+                print("error line:",symbol_table[t2]["token"],"   rhs = ", t2)
+
+        if p[2]=='*':
+            p[0] = t1*t2
+        elif p[2]=='/':
+            p[0] = t1/t2
+        elif p[2]=='%':
+            p[0] = t1%t2
+    else:
+        p[0] = p[1:]
+		
+def p_AdditiveExpression(p):
+    '''AdditiveExpression : MultiplicativeExpression
+        | AdditiveExpression addoperator MultiplicativeExpression
+    '''
+    if len(list(p))==4:
+        t1 = flatten(p[1])[0]
+        t2 = flatten(p[3])[0]
+        if t1 in symbol_table:
+            if symbol_table[t1]['valid'] or not symbol_table[t1]['valid']:
+                t1 = symbol_table[t1]['value']
+            else:
+                print("error line:",symbol_table[t1]["token"],"   rhs = ", t1)
+
+        if t2 in symbol_table:
+            if symbol_table[t2]['valid'] or not symbol_table[t2]['valid']:
+                t2 = symbol_table[t2]['value']
+            else:
+                print("error line:",symbol_table[t2]["token"],"   rhs = ", t2)
+                
+        if p[2]=='+':
+            p[0] = t1+t2
+        elif p[2]=='-':
+            p[0] = t1-t2
+    else:
+        p[0] = p[1:]	
+
+def p_arithmeticExp(p):
+	''' arithmeticExp : AdditiveExpression
+						| MultiplicativeExpression
+	'''
+	p[0] = p[1:]
+
 
 def p_start(p):
 	'''start : OPENTAG statement'''
@@ -43,20 +142,7 @@ def p_statement(p):
 				   | end
 	'''
 	p[0] = p[1:]
-
-def p_assignment(p):
-	'''assignment : IDENTIFIER assignmentOperator arithmeticExp ";" 
-				  
-	'''
-	p[0] = p[1:]
-
-def p_operator(p):
-	''' operator : '+'
-				 | '-'
-				 | '*'
-				 | '/'
-	'''
-
+	
 def p_assignmentOperator(p):
     '''assignmentOperator : '='
     | ASS_MUL
@@ -67,35 +153,83 @@ def p_assignmentOperator(p):
     '''
     p[0] = p[1:]
 
-def p_arithmeticExp(p):
-	''' arithmeticExp : args operator args
-						| args
+def p_assignment(p):
+	'''assignment : IDENTIFIER assignmentOperator arithmeticExp ";" 
+				  
 	'''
-	p[0] = p[1:]
+	#length will be 5 because semicolon is counted, don't forget!!!
+	if len(list(p))==5:
+		variable = flatten(p[1])[0]
+		p[0] = symbol_table[variable]['value']
+		rhs = flatten(p[3])[0]
+		if rhs in symbol_table:
+			if symbol_table[rhs]['valid'] or not symbol_table[rhs]['valid']:
+				rhs = symbol_table[rhs]['value']
+			else:
+				print("error line:",symbol_table[rhs]["token"],"   rhs = ", rhs, 'lhs = ',symbol_table[variable]["token"])
+		if p[2][0]=='=':
+			p[0] = rhs
+		elif p[2][0]=='+=':
+			p[0] += rhs
+		elif p[2][0]=='-=':
+			p[0] -= rhs             
+		elif p[2][0]=='*=':
+			p[0] *= rhs
+		elif p[2][0]=='/=':
+			p[0] /= rhs
+		elif p[2][0]=='%=':
+			p[0] %= rhs
+		symbol_table[variable]['value'] = p[0]
+	else:
+		p[0] = p[1:]
 
-def p_args(p):
-	'''args : IDENTIFIER
-			| LNUM_LITERAL
-			| DNUM_LITERAL
-			| SINGLE_STRING
-			| DOUBLE_STRING
-			| BOOL_LITERAL
-			| postfixExpr
-			| prefixExpr
+def p_postfixExprInc(p):
+	'''postfixExpr : IDENTIFIER OP_INC
 	'''
-	p[0] = p[1:]
+	if len(list(p))==3:
+		variable = flatten(p[1])[0]
+		if symbol_table[variable]['value']== "None":
+			#error
+			symbol_table[variable]['value']=0
+		symbol_table[variable]['value']+=1
+	else:
+		p[0] = p[1:]
+	
+def p_postfixExprDec(p):
+	'''postfixExpr : IDENTIFIER OP_DEC 
+	'''
+	if len(list(p))==3:
+		variable = flatten(p[1])[0]
+		if symbol_table[variable]['value']== "None":
+			#error
+			symbol_table[variable]['value']=0
+		symbol_table[variable]['value']-=1
+	else:
+		p[0] = p[1:]
 
-def p_postfixExpr(p):
-	'''postfixExpr : IDENTIFIER OP_INC 
-				   | IDENTIFIER OP_DEC 
+def p_prefixExprInc(p):
+	'''prefixExpr : OP_INC IDENTIFIER
 	'''
-	p[0] = p[1:]
+	if len(list(p))==3:
+		variable = flatten(p[2])[0]
+		if symbol_table[variable]['value']== "None":
+			#error
+			symbol_table[variable]['value']=0
+		symbol_table[variable]['value']+=1
+	else:
+		p[0] = p[1:]
 
-def p_prefixExpr(p):
-	'''prefixExpr : OP_INC IDENTIFIER  
-				   | OP_DEC IDENTIFIER 
+def p_prefixExprDec(p):
+	'''prefixExpr : OP_DEC IDENTIFIER 
 	'''
-	p[0] = p[1:]
+	if len(list(p))==3:
+		variable = flatten(p[2])[0]
+		if symbol_table[variable]['value']== "None":
+			#error
+			symbol_table[variable]['value']=0
+		symbol_table[variable]['value']-=1
+	else:
+		p[0] = p[1:]
 
 def p_whileLoop(p):
 	'''whileLoop : WHILE '(' conditionalExp ')' '{' block '}'
