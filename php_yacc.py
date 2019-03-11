@@ -33,8 +33,13 @@ tokens = [
 
 start = 'start'
 
-def p_error(p):
-    print('Syntax error in input! Parser State')
+"""def p_error(p):
+    print('Syntax error in input! Parser State')"""
+	
+def p_modifier(p):
+	'''modifier: GLOBAL | STATIC
+	'''
+	p[0] = p[1:]
 	
 def p_args(p):
 	'''args : IDENTIFIER
@@ -104,11 +109,16 @@ def p_AdditiveExpression(p):
         elif p[2]=='-':
             p[0] = t1-t2
     else:
-        p[0] = p[1:]	
+        p[0] = p[1:]
+
+def p_ArrayExpression(p):
+	''' ArrayExpression : '[' args ',' args ']'
+	'''
 
 def p_arithmeticExp(p):
 	''' arithmeticExp : AdditiveExpression
 						| MultiplicativeExpression
+						| ArrayExpression
 	'''
 	p[0] = p[1:]
 
@@ -121,6 +131,7 @@ def p_states(p):
 			  | postfixExpr ";"
 			  | prefixExpr ";"
 			  | whileLoop
+			  | forEach
 			  | return
 			  | break
 			  | continue
@@ -145,12 +156,38 @@ def p_assignmentOperator(p):
     '''
     p[0] = p[1:]
 
+def p_params(p):
+	'''params : args
+			  | args ',' params
+	'''
+	if(len(list(p))==2):
+		p[0] = p[1:]
+	else:
+		x = flatten(p[3])
+		p[0] = []
+		p[0].append(p[1][0])
+		for val in x:
+			p[0].append(val)
+	
 def p_assignment(p):
-	'''assignment : IDENTIFIER assignmentOperator arithmeticExp ";" 
+	'''assignment : IDENTIFIER assignmentOperator arithmeticExp ";"
+					| IDENTIFIER '=' '[' params ']' ';'
 				  
 	'''
-	#length will be 5 because semicolon is counted, don't forget!!!
+	
+	if len(list(p))>5:
+		variable = flatten(p[1])[0]
+		#p[4], p[6]
+		print(p[4])
+		#print(flatten(p[4][4])[0])
+		#l=[]
+		#l.append(flatten(p[4])[0])
+		#l.append(flatten(p[6])[0])
+		symbol_table[variable]['value']=p[4]
+		symbol_table[variable]['type']="array_identifier"
+		
 	if len(list(p))==5:
+		print(p[:])
 		variable = flatten(p[1])[0]
 		p[0] = symbol_table[variable]['value']
 		rhs = flatten(p[3])[0]
@@ -161,16 +198,20 @@ def p_assignment(p):
 				print("error line:",symbol_table[rhs]["token"],"   rhs = ", rhs, 'lhs = ',symbol_table[variable]["token"])
 		if p[2][0]=='=':
 			p[0] = rhs
-		elif p[2][0]=='+=':
-			p[0] += rhs
-		elif p[2][0]=='-=':
-			p[0] -= rhs             
-		elif p[2][0]=='*=':
-			p[0] *= rhs
-		elif p[2][0]=='/=':
-			p[0] /= rhs
-		elif p[2][0]=='%=':
-			p[0] %= rhs
+		else:
+			if(p[0]== 'None'):
+				print("error line:",variable,"is undefined")
+			else:
+				if p[2][0]=='+=':
+					p[0] += rhs
+				elif p[2][0]=='-=':
+					p[0] -= rhs             
+				elif p[2][0]=='*=':
+					p[0] *= rhs
+				elif p[2][0]=='/=':
+					p[0] /= rhs
+				elif p[2][0]=='%=':
+					p[0] %= rhs
 		symbol_table[variable]['value'] = p[0]
 	else:
 		p[0] = p[1:]
@@ -226,6 +267,11 @@ def p_prefixExprDec(p):
 def p_whileLoop(p):
 	'''whileLoop : WHILE '(' conditionalExp ')' '{' block '}'
 	'''
+	
+def p_forEach(p):
+	'''forEach : FOREACH '(' IDENTIFIER AS IDENTIFIER ')' '{' block '}'
+	'''
+	
 def p_conditionalOp(p):
 	'''conditionalOp : OP_GE
 					 | OP_LE

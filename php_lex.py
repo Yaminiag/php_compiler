@@ -116,7 +116,7 @@ def t_BOOL_LITERAL(t) :
 
 literals = [';', ',', '+', '-', '*', '/',
 			'%','<', '>', '!', '&', '|',
-			'(', ')', '{', '}', '=']
+			'(', ')', '{', '}', '=', '[', ']']
 
 def t_KEYWORDS(t):
 	r"[A-Za-z_][A-Za-z0-9_]*"
@@ -220,6 +220,16 @@ def t_rbrace(t):
 def t_ass(t):
 	r'='
 	t.type = '='      
+	return t
+	
+def lsquare(t):
+	r'['
+	t.type='['
+	return t
+
+def rsquare(t):
+	r']'
+	t.type=']'
 	return t
 
 # Floating literal
