@@ -47,21 +47,12 @@ def p_args(p):
 			| prefixExpr
 	'''
 	p[0] = p[1:]
-	
-def p_muloperator(p):
-	''' muloperator : '*'
-				 | '/'
-				 | '%'
-	'''
-	
-def p_addoperator(p):
-	''' addoperator : '+'
-				 | '-'
-	'''
 
 def p_MultiplicativeExpression(p):
     '''MultiplicativeExpression : args
-    | MultiplicativeExpression muloperator args
+    | MultiplicativeExpression '*' args
+	| MultiplicativeExpression '/' args
+	| MultiplicativeExpression '%' args
     '''
     if len(list(p))==4:
         print(p[:])
@@ -90,7 +81,8 @@ def p_MultiplicativeExpression(p):
 		
 def p_AdditiveExpression(p):
     '''AdditiveExpression : MultiplicativeExpression
-        | AdditiveExpression addoperator MultiplicativeExpression
+        | AdditiveExpression '+' MultiplicativeExpression
+        | AdditiveExpression '-' MultiplicativeExpression
     '''
     if len(list(p))==4:
         t1 = flatten(p[1])[0]
