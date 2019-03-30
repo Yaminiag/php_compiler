@@ -67,22 +67,31 @@ def p_MultiplicativeExpression(p):
             if symbol_table[t1]['valid']:
                 t1 = symbol_table[t1]['value']
             else:
-                print("error line: Undeclared variable",symbol_table[t1]["token"],"   rhs = ", t1)
+                print("error line: Undeclared variable", t1)
+                t1 = symbol_table[t1]['value']
                 return
 
         if t2 in symbol_table:
             if symbol_table[t2]['valid']:
                 t2 = symbol_table[t2]['value']
             else:
-                print("error line: Undeclared variable",symbol_table[t2]["token"],"   rhs = ", t2)
+                print("error line: Undeclared variable", t2)
+                t2 = symbol_table[t2]['value']
                 return
 
-        if p[2]=='*':
-            p[0] = t1*t2
-        elif p[2]=='/':
-            p[0] = t1/t2
-        elif p[2]=='%':
-            p[0] = t1%t2
+        if t1 == None:
+        	valid = 0
+        elif t2 == None:
+        	valid = 0
+        else:
+        	valid = 1
+        if valid:
+	        if p[2]=='*':
+	            p[0] = t1*t2
+	        elif p[2]=='/':
+	            p[0] = t1/t2
+	        elif p[2]=='%':
+	            p[0] = t1%t2
     else:
         p[0] = p[1:]
 		
@@ -98,20 +107,29 @@ def p_AdditiveExpression(p):
             if symbol_table[t1]['valid']:
                 t1 = symbol_table[t1]['value']
             else:
-                print("error line: Undeclared variable",symbol_table[t1]["token"],"   rhs = ", t1)
+                print("error line: Undeclared variable",t1)
+                t1 = symbol_table[t1]['value']
                 return
 
         if t2 in symbol_table:
             if symbol_table[t2]['valid']:
                 t2 = symbol_table[t2]['value']
             else:
-                print("error line: Undeclared variable",symbol_table[t2]["token"],"   rhs = ", t2)
+                print("error line: Undeclared variable",t2)
+                t2 = symbol_table[t2]['value']
                 return
-                
-        if p[2]=='+':
-            p[0] = t1+t2
-        elif p[2]=='-':
-            p[0] = t1-t2
+
+        if t1 == None:
+        	valid = 0
+        elif t2 == None:
+        	valid = 0
+        else:
+        	valid = 1
+        if valid:        
+	        if p[2]=='+':
+	            p[0] = t1+t2
+	        elif p[2]=='-':
+	            p[0] = t1-t2
     else:
         p[0] = p[1:]
 
@@ -314,25 +332,34 @@ def p_conditionalExp(p):
 		if t2 in symbol_table:
 			if symbol_table[t2]['valid']:
 				t2 = symbol_table[t2]['value']
-		if p[2][0]=='<':
-			p[0] = t1 < t2
-		elif p[2][0]=='>':
-			p[0] = t1 > t2
-		elif p[2][0]=='<=':
-			p[0] = t1 <= t2
-		elif p[2][0]=='>=':
-			p[0] = t1 >= t2
-		elif p[2][0]=='==':
-			p[0] = t1 == t2
-		elif p[2][0]=='!=':
-			p[0] = t1 != t2
-		elif p[2][0]=='<>':
-			p[0] = t1 != t2
-		elif p[2][0]=='&&' or p[2][0]=='and':
-			p[0] = t1 and t2
-		elif p[2][0]=='||' or p[2][0]=='or':
-			p[0] = t1 or t2
-		print('Cond',p[0])
+		if t1 == None:
+			valid = 0
+			print("error line: Invalid type", t1 ,"for",flatten(p[1])[0])
+		elif t2 == None:
+			valid = 0
+			print("error line: Invalid type", t2 ,"for",flatten(p[1])[0])
+		else:
+			valid = 1
+		if valid:
+			if p[2][0]=='<':
+				p[0] = t1 < t2
+			elif p[2][0]=='>':
+				p[0] = t1 > t2
+			elif p[2][0]=='<=':
+				p[0] = t1 <= t2
+			elif p[2][0]=='>=':
+				p[0] = t1 >= t2
+			elif p[2][0]=='==':
+				p[0] = t1 == t2
+			elif p[2][0]=='!=':
+				p[0] = t1 != t2
+			elif p[2][0]=='<>':
+				p[0] = t1 != t2
+			elif p[2][0]=='&&' or p[2][0]=='and':
+				p[0] = t1 and t2
+			elif p[2][0]=='||' or p[2][0]=='or':
+				p[0] = t1 or t2
+			print('Cond',p[0])
 
 	else:
 		p[0] = p[1:]
