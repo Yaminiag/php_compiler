@@ -21,8 +21,7 @@ while True:
  print(tok) 
 
 x = parser.parse(input_str)
-print("\n\n\n============Parser Output============")
-print(x)
+
 print("\n\n\n============Symbol Table=============")
 for symbol in symbol_table:
 	if("token" in symbol_table[symbol]):

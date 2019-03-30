@@ -6,11 +6,11 @@
 	//hello
 	foreach($a as $i)
 	{
-		$z += 5;
+		$z = $i+5;
 		echo "php";
-		while($z > 4)
+		while($z >= 4)
 		{
-			
+			$c = 5;
 		}
 	}
 ?>

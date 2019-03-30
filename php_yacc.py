@@ -36,10 +36,10 @@ start = 'start'
 """def p_error(p):
     print('Syntax error in input! Parser State')"""
 	
-def p_modifier(p):
-	'''modifier: GLOBAL | STATIC
-	'''
-	p[0] = p[1:]
+# def p_modifier(p):
+# 	'''modifier: GLOBAL | STATIC
+# 	'''
+# 	p[0] = p[1:]
 	
 def p_args(p):
 	'''args : IDENTIFIER
@@ -64,16 +64,18 @@ def p_MultiplicativeExpression(p):
         t1 = flatten(p[1])[0]
         t2 = flatten(p[3])[0]
         if t1 in symbol_table:
-            if symbol_table[t1]['valid'] or not symbol_table[t1]['valid']:
+            if symbol_table[t1]['valid']:
                 t1 = symbol_table[t1]['value']
             else:
-                print("error line:",symbol_table[t1]["token"],"   rhs = ", t1)
+                print("error line: Undeclared variable",symbol_table[t1]["token"],"   rhs = ", t1)
+                return
 
         if t2 in symbol_table:
-            if symbol_table[t2]['valid'] or not symbol_table[t2]['valid']:
+            if symbol_table[t2]['valid']:
                 t2 = symbol_table[t2]['value']
             else:
-                print("error line:",symbol_table[t2]["token"],"   rhs = ", t2)
+                print("error line: Undeclared variable",symbol_table[t2]["token"],"   rhs = ", t2)
+                return
 
         if p[2]=='*':
             p[0] = t1*t2
@@ -93,16 +95,18 @@ def p_AdditiveExpression(p):
         t1 = flatten(p[1])[0]
         t2 = flatten(p[3])[0]
         if t1 in symbol_table:
-            if symbol_table[t1]['valid'] or not symbol_table[t1]['valid']:
+            if symbol_table[t1]['valid']:
                 t1 = symbol_table[t1]['value']
             else:
-                print("error line:",symbol_table[t1]["token"],"   rhs = ", t1)
+                print("error line: Undeclared variable",symbol_table[t1]["token"],"   rhs = ", t1)
+                return
 
         if t2 in symbol_table:
-            if symbol_table[t2]['valid'] or not symbol_table[t2]['valid']:
+            if symbol_table[t2]['valid']:
                 t2 = symbol_table[t2]['value']
             else:
-                print("error line:",symbol_table[t2]["token"],"   rhs = ", t2)
+                print("error line: Undeclared variable",symbol_table[t2]["token"],"   rhs = ", t2)
+                return
                 
         if p[2]=='+':
             p[0] = t1+t2
@@ -111,14 +115,11 @@ def p_AdditiveExpression(p):
     else:
         p[0] = p[1:]
 
-def p_ArrayExpression(p):
-	''' ArrayExpression : '[' args ',' args ']'
-	'''
 
 def p_arithmeticExp(p):
 	''' arithmeticExp : AdditiveExpression
 						| MultiplicativeExpression
-						| ArrayExpression
+						
 	'''
 	p[0] = p[1:]
 
@@ -139,6 +140,7 @@ def p_states(p):
 			  | print
 
 	'''
+	p[0] = p[1:]
 
 def p_statement(p):
 	'''statement : states statement
@@ -175,8 +177,10 @@ def p_assignment(p):
 				  
 	'''
 	
+
 	if len(list(p))>5:
 		variable = flatten(p[1])[0]
+		symbol_table[variable]['valid'] = True
 		#p[4], p[6]
 		print(p[4])
 		#print(flatten(p[4][4])[0])
@@ -184,23 +188,29 @@ def p_assignment(p):
 		#l.append(flatten(p[4])[0])
 		#l.append(flatten(p[6])[0])
 		symbol_table[variable]['value']=p[4]
-		symbol_table[variable]['type']="array_identifier"
+		symbol_table[variable]['type']= "array_identifier"
+		
 		
 	if len(list(p))==5:
 		print(p[:])
 		variable = flatten(p[1])[0]
 		p[0] = symbol_table[variable]['value']
+		symbol_table[variable]['valid'] = True
 		rhs = flatten(p[3])[0]
-		if rhs in symbol_table:
-			if symbol_table[rhs]['valid'] or not symbol_table[rhs]['valid']:
-				rhs = symbol_table[rhs]['value']
+		if variable in symbol_table:
+			if symbol_table[variable]['valid']:
+				pass
+				# if symbol_table[variable]['value']!="None":
+				# 	rhs = symbol_table[variable]['value']
+				# 	print(rhs)
 			else:
-				print("error line:",symbol_table[rhs]["token"],"   rhs = ", rhs, 'lhs = ',symbol_table[variable]["token"])
+				print("error line:Undeclared variable",symbol_table[variable]["token"],"   rhs = ", rhs, 'lhs = ',symbol_table[variable]["token"])
 		if p[2][0]=='=':
 			p[0] = rhs
+			
 		else:
 			if(p[0]== 'None'):
-				print("error line:",variable,"is undefined")
+				print("error line: Undeclared variable",symbol_table[variable]["token"],"   rhs = ", rhs, 'lhs = ',symbol_table[variable]["token"])
 			else:
 				if p[2][0]=='+=':
 					p[0] += rhs
@@ -267,10 +277,13 @@ def p_prefixExprDec(p):
 def p_whileLoop(p):
 	'''whileLoop : WHILE '(' conditionalExp ')' '{' block '}'
 	'''
+	p[0] = p[1:]
+	print(p[0])
 	
 def p_forEach(p):
 	'''forEach : FOREACH '(' IDENTIFIER AS IDENTIFIER ')' '{' block '}'
 	'''
+	p[0] = p[1:]
 	
 def p_conditionalOp(p):
 	'''conditionalOp : OP_GE
@@ -282,6 +295,7 @@ def p_conditionalOp(p):
 					 | '<'
 					 | '>'
 	'''
+	p[0] = p[1:]
 
 def p_conditionalExp(p):
 	'''conditionalExp : condArgs conditionalOp condArgs
@@ -291,12 +305,45 @@ def p_conditionalExp(p):
 					  | '(' conditionalExp ')' logicalOp conditionalExp
 					  | conditionalExp logicalOp '(' conditionalExp ')'
 	'''
+	if len(list(p))==4:
+		t1 = flatten(p[1])[0]
+		if t1 in symbol_table:
+			if symbol_table[t1]['valid']:
+				t1 = symbol_table[t1]['value']
+		t2 = flatten(p[3])[0]
+		if t2 in symbol_table:
+			if symbol_table[t2]['valid']:
+				t2 = symbol_table[t2]['value']
+		if p[2][0]=='<':
+			p[0] = t1 < t2
+		elif p[2][0]=='>':
+			p[0] = t1 > t2
+		elif p[2][0]=='<=':
+			p[0] = t1 <= t2
+		elif p[2][0]=='>=':
+			p[0] = t1 >= t2
+		elif p[2][0]=='==':
+			p[0] = t1 == t2
+		elif p[2][0]=='!=':
+			p[0] = t1 != t2
+		elif p[2][0]=='<>':
+			p[0] = t1 != t2
+		elif p[2][0]=='&&' or p[2][0]=='and':
+			p[0] = t1 and t2
+		elif p[2][0]=='||' or p[2][0]=='or':
+			p[0] = t1 or t2
+		print('Cond',p[0])
+
+	else:
+		p[0] = p[1:]
+	
 
 def p_logicalOp(p):
 	'''logicalOp : OP_LAND
 				 | OP_LOR
 				 | OP_XOR
 	'''
+	p[0] = p[1:]
 
 def p_condArgs(p):
 	''' condArgs : arithmeticExp
@@ -304,11 +351,13 @@ def p_condArgs(p):
 				 | LNUM_LITERAL
 				 | DNUM_LITERAL
 	'''
+	p[0] = p[1:]
 
 def p_block(p):
 	'''block : states block
 			 |
 	'''
+	p[0] = p[1:]
 
 def p_return(p):
 	'''return : RETURN ";"
@@ -319,20 +368,24 @@ def p_return(p):
 def p_break(p):
 	'''break : BREAK ";"
 	'''
+	p[0] = p[1:]
 
 def p_continue(p):
 	'''continue : CONTINUE ";"
 	'''
+	p[0] = p[1:]
 
 def p_echo(p):
 	'''echo : ECHO ";"
 			| ECHO arithmeticExp ";"
 	'''
+	p[0] = p[1:]
 
 def p_print(p):
 	'''print : PRINT arithmeticExp ";"
 			 | PRINT '(' arithmeticExp ')' ';'
 	'''
+	p[0] = p[1:]
 
 def p_end(p):
 	'''end : CLOSETAG'''
