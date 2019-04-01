@@ -15,6 +15,8 @@ class Node:
  		print(self.type)
  		for i in self.children:
  			if i is not None:
+ 				#print(i)
+ 				#print(i.children)
  				i.PrintTree()
 	    	
 	def set(self, children):
@@ -69,7 +71,8 @@ def p_args(p):
 			| postfixExpr
 			| prefixExpr
 	'''
-	p[0] = p[1:]
+	rc=Node(p[1])
+	p[0] =rc
 
 def p_MultiplicativeExpression(p):
     '''MultiplicativeExpression : args
@@ -77,79 +80,92 @@ def p_MultiplicativeExpression(p):
 	| MultiplicativeExpression '/' args
 	| MultiplicativeExpression '%' args
     '''
+    # if len(list(p))==4:
+    #     print(p[:])
+    #     t1 = flatten(p[1])[0]
+    #     t2 = flatten(p[3])[0]
+    #     if t1 in symbol_table:
+    #         if symbol_table[t1]['valid']:
+    #             t1 = symbol_table[t1]['value']
+    #         else:
+    #             print("error line: Undeclared variable", t1)
+    #             t1 = symbol_table[t1]['value']
+    #             return
+
+    #     if t2 in symbol_table:
+    #         if symbol_table[t2]['valid']:
+    #             t2 = symbol_table[t2]['value']
+    #         else:
+    #             print("error line: Undeclared variable", t2)
+    #             t2 = symbol_table[t2]['value']
+    #             return
+
+    #     if t1 == None:
+    #     	valid = 0
+    #     elif t2 == None:
+    #     	valid = 0
+    #     else:
+    #     	valid = 1
+    #     if valid:
+	   #      if p[2]=='*':
+	   #          p[0] = t1*t2
+	   #      elif p[2]=='/':
+	   #          p[0] = t1/t2
+	   #      elif p[2]=='%':
+	   #          p[0] = t1%t2
+    # else:
+    #     p[0] = p[1:]
     if len(list(p))==4:
-        print(p[:])
-        t1 = flatten(p[1])[0]
-        t2 = flatten(p[3])[0]
-        if t1 in symbol_table:
-            if symbol_table[t1]['valid']:
-                t1 = symbol_table[t1]['value']
-            else:
-                print("error line: Undeclared variable", t1)
-                t1 = symbol_table[t1]['value']
-                return
-
-        if t2 in symbol_table:
-            if symbol_table[t2]['valid']:
-                t2 = symbol_table[t2]['value']
-            else:
-                print("error line: Undeclared variable", t2)
-                t2 = symbol_table[t2]['value']
-                return
-
-        if t1 == None:
-        	valid = 0
-        elif t2 == None:
-        	valid = 0
-        else:
-        	valid = 1
-        if valid:
-	        if p[2]=='*':
-	            p[0] = t1*t2
-	        elif p[2]=='/':
-	            p[0] = t1/t2
-	        elif p[2]=='%':
-	            p[0] = t1%t2
+    	p[0]=Node(p[2],[p[1],p[3]])
     else:
-        p[0] = p[1:]
+    	p[0]=p[1]
+
 		
 def p_AdditiveExpression(p):
     '''AdditiveExpression : MultiplicativeExpression
         | AdditiveExpression '+' MultiplicativeExpression
         | AdditiveExpression '-' MultiplicativeExpression
     '''
+    # if len(list(p))==4:
+    #     t1 = flatten(p[1])[0]
+    #     t2 = flatten(p[3])[0]
+    #     if t1 in symbol_table:
+    #         if symbol_table[t1]['valid']:
+    #             t1 = symbol_table[t1]['value']
+    #         else:
+    #             print("error line: Undeclared variable",t1)
+    #             t1 = symbol_table[t1]['value']
+    #             return
+
+    #     if t2 in symbol_table:
+    #         if symbol_table[t2]['valid']:
+    #             t2 = symbol_table[t2]['value']
+    #         else:
+    #             print("error line: Undeclared variable",t2)
+    #             t2 = symbol_table[t2]['value']
+    #             return
+
+    #     if t1 == None:
+    #     	valid = 0
+    #     elif t2 == None:
+    #     	valid = 0
+    #     else:
+    #     	valid = 1
+    #     if valid:        
+	   #      if p[2]=='+':
+	   #          p[0] = t1+t2
+	   #      elif p[2]=='-':
+	   #          p[0] = t1-t2
+    # else:
+    #     p[0] = p[1:]
     if len(list(p))==4:
-        t1 = flatten(p[1])[0]
-        t2 = flatten(p[3])[0]
-        if t1 in symbol_table:
-            if symbol_table[t1]['valid']:
-                t1 = symbol_table[t1]['value']
-            else:
-                print("error line: Undeclared variable",t1)
-                t1 = symbol_table[t1]['value']
-                return
-
-        if t2 in symbol_table:
-            if symbol_table[t2]['valid']:
-                t2 = symbol_table[t2]['value']
-            else:
-                print("error line: Undeclared variable",t2)
-                t2 = symbol_table[t2]['value']
-                return
-
-        if t1 == None:
-        	valid = 0
-        elif t2 == None:
-        	valid = 0
-        else:
-        	valid = 1
-        if valid:        
-	        if p[2]=='+':
-	            p[0] = t1+t2
-	        elif p[2]=='-':
-	            p[0] = t1-t2
+    	#print(p[2])
+    	#print(p[1],p[3])
+    	p[0]=Node(p[2],[p[1],p[3]])
     else:
-        p[0] = p[1:]
+    	p[0]=p[1]
+    
+
 
 
 def p_arithmeticExp(p):
@@ -157,7 +173,8 @@ def p_arithmeticExp(p):
 						| MultiplicativeExpression
 						
 	'''
-	p[0] = p[1:]
+	print(p[1])
+	p[0] = p[1]
 
 
 def p_start(p):
@@ -181,8 +198,9 @@ def p_states(p):
 	'''
 	if len(list(p))!=2:
 		rc=Node(p[2])
-		p[0]=Node("EXPR",[p[1],rc])
+		p[0]=Node("EXPR",[p[1],rc]) #postfix
 	else:
+		#val=str(p[1])
 		p[0]=Node("EXPR",[p[1]])
 
 def p_statement(p):
@@ -413,23 +431,37 @@ def p_return(p):
 	'''return : RETURN ";"
 			  | RETURN arithmeticExp ";"
 	'''
-	p[0] = p[1:]
+	if(len(list(p))==3):
+		lc=Node(p[1])
+		rc=Node(p[2])
+		p[0] = Node("RET",[lc,rc])
+	else:
+		lc=Node(p[1])
+		rc=Node(p[3])
+		p[0]=Node("RET",[lc,p[2],rc])
 
 def p_break(p):
 	'''break : BREAK ";"
 	'''
-	p[0]=Node("BREAK")
+	p[0]=Node(p[1],[p[1],p[2]])
 
 def p_continue(p):
 	'''continue : CONTINUE ";"
 	'''
-	p[0] = p[1:]
+	p[0] = Node(p[1],[p[1],p[2]])
 
 def p_echo(p):
 	'''echo : ECHO ";"
 			| ECHO arithmeticExp ";"
 	'''
-	p[0] = p[1:]
+	if(len(list(p))==3):
+		lc=Node(p[1])
+		rc=Node(p[2])
+		p[0] = Node("ECHO",[lc,rc])
+	else:
+		lc=Node(p[1])
+		rc=Node(p[3])
+		p[0]=Node("ECHO",[lc,p[2],rc])
 
 def p_print(p):
 	'''print : PRINT arithmeticExp ";"
