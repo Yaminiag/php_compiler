@@ -1,4 +1,27 @@
 from php_lex import symbol_table
+import copy
+
+
+
+class Node: 
+	def __init__(self,type,children=None):
+          self.type = type
+          if children:
+               self.children = children
+          else:
+               self.children = [ ]
+               
+ 	def PrintTree(self):
+ 		print(self.type)
+ 		for i in self.children:
+ 			if i is not None:
+ 				i.PrintTree()
+	    	
+	def set(self, children):
+		self.children = children
+
+
+root=Node("START")
 
 def flatten(l):
     output = []
@@ -35,11 +58,6 @@ start = 'start'
 
 """def p_error(p):
     print('Syntax error in input! Parser State')"""
-	
-# def p_modifier(p):
-# 	'''modifier: GLOBAL | STATIC
-# 	'''
-# 	p[0] = p[1:]
 	
 def p_args(p):
 	'''args : IDENTIFIER
@@ -144,6 +162,9 @@ def p_arithmeticExp(p):
 
 def p_start(p):
 	'''start : OPENTAG statement'''
+	lc=Node(p[1])
+	root.set([lc,p[2]])
+	root.PrintTree()
 
 def p_states(p):
 	'''states : assignment
@@ -158,13 +179,20 @@ def p_states(p):
 			  | print
 
 	'''
-	p[0] = p[1:]
+	if len(list(p))!=2:
+		rc=Node(p[2])
+		p[0]=Node("EXPR",[p[1],rc])
+	else:
+		p[0]=Node("EXPR",[p[1]])
 
 def p_statement(p):
 	'''statement : states statement
 				   | end
 	'''
-	p[0] = p[1:]
+	if(len(list(p))==3):
+		p[0]=Node("SEQ",[p[1],p[2]])
+	else:
+		p[0]=Node("END")
 	
 def p_assignmentOperator(p):
     '''assignmentOperator : '='
@@ -199,12 +227,7 @@ def p_assignment(p):
 	if len(list(p))>5:
 		variable = flatten(p[1])[0]
 		symbol_table[variable]['valid'] = True
-		#p[4], p[6]
 		print(p[4])
-		#print(flatten(p[4][4])[0])
-		#l=[]
-		#l.append(flatten(p[4])[0])
-		#l.append(flatten(p[6])[0])
 		symbol_table[variable]['value']=p[4]
 		symbol_table[variable]['type']= "array_identifier"
 		
@@ -395,7 +418,7 @@ def p_return(p):
 def p_break(p):
 	'''break : BREAK ";"
 	'''
-	p[0] = p[1:]
+	p[0]=Node("BREAK")
 
 def p_continue(p):
 	'''continue : CONTINUE ";"
@@ -412,7 +435,7 @@ def p_print(p):
 	'''print : PRINT arithmeticExp ";"
 			 | PRINT '(' arithmeticExp ')' ';'
 	'''
-	p[0] = p[1:]
 
 def p_end(p):
-	'''end : CLOSETAG'''
+ 	'''end : CLOSETAG'''
+ 	#root.PrintTree()
