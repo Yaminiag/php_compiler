@@ -1,3 +1,6 @@
 <?php
-echo $a/$b+$C;
+while($a>$b)
+{
+	$a = 5;
+}
 ?>
