@@ -1,0 +1,6 @@
+TO-DO
+foreach ICG
+code optimization - any one or two
+get back full symbol table -> check how well this works
+allow errors and keep parsing
+return line number of error

@@ -1,11 +1,11 @@
-<?php
-while($a>$b)
+<?php 
+while($a==0)
 {
-	$a = 5;
-}
-$sum=0;
-foreach($a as $arr)
-{
-	$sum=3*$sum+$a*5;
+	$a=0;
+	while($b!=0)
+	{
+		continue;
+		$a=
+	}
 }
 ?>

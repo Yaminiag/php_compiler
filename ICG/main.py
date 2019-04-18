@@ -18,7 +18,7 @@ while True:
  tok = lex.token()
  if not tok:
 	 break      # No more input
- print(tok)
+ print(tok) 
 
 x = parser.parse(input_str)
 

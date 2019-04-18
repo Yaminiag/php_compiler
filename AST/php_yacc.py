@@ -1,8 +1,6 @@
 from php_lex import symbol_table
 import copy
 
-
-
 class Node: 
 	def __init__(self,type,children=None):
           self.type = type
@@ -37,6 +35,100 @@ class Node:
 	    	
 	def set(self, children):
 		self.children = children
+		
+	def gen_icg(self):
+	
+		ch=self.children
+		if len(ch)==0:
+			stops=["RETURN", "break", "continue"]
+			if self.type in stops:
+				t=None
+				return Synth(self.type,t)
+			return Synth("",str(self.type))
+			
+		if self.type=="WHILE":
+			l1=label() #top of while
+			l2=label() #code inside while
+			l3=label() #outside while
+			s1=ch[0].gen_icg()
+			code=l1+": "+s1.code+"goto "+l2+"\ngoto "+l3+"\n"
+			s2=ch[1].gen_icg()
+			t=None
+			if "break" in s2.code:
+				parts=s2.code.split("break")
+				s2.code=parts[0]+"goto "+l3+"\n"+parts[1]
+			elif "continue" in s2.code:	
+				parts=s2.code.split("continue")
+				s2.code=parts[0]+"goto "+l1+"\n"+parts[1]
+			code=code+l2+": "+s2.code+"goto "+l1+"\n"+l3+": "
+			return Synth(code, t)
+
+		# len(ch)==3 for FOREACH
+		if len(ch)==2:
+			#Synth objects
+			s1=ch[0].gen_icg()
+			s2=ch[1].gen_icg()
+			arith="+-*/%"
+			logic="<> <= >= == !="
+			t=""
+			code=""
+			if self.type=="=":
+				t=None
+				code=s1.code+s2.code+s1.addr+"="+s2.addr+"\n"
+			elif self.type in arith:
+				t=temp()
+				code=s1.code+s2.code+t+"="+s1.addr+self.type+s2.addr+"\n"
+			elif self.type=="SEQ":
+				t=None
+				code=s1.code+s2.code
+			elif self.type in logic:
+				t=None
+				code=s1.code+s2.code+"if "+s1.addr+self.type+s2.addr+" "			
+			return Synth(code,t)
+		
+		if len(ch)==1:
+			t=""
+			code=""
+			s1=ch[0].gen_icg()
+			incdec=["POSTFIXINC","POSTFIXDEC","PREFIXINC","PREFIXDEC"]
+			prints=["PRINT","ECHO", "RETURN"]
+			if self.type in incdec:
+				t=None
+				op=""
+				if "INC" in self.type:
+					op="+"
+				else:
+					op="-"
+				code=s1.addr+"="+s1.addr+op+"1\n"
+			elif self.type in prints:
+				t=None
+				code=self.type.lower()+" "+s1.addr+"\n"
+			elif self.type=="SEQ":
+				t=None
+				code=s1.code
+			elif self.type=="PROGRAM":
+				t=None
+				code=s1.code
+			return Synth(code,t)
+		
+			
+T_count=0
+L_count=0
+
+def temp():
+	global T_count
+	T_count+=1
+	return "t"+str(T_count)
+	
+def label():
+	global L_count
+	L_count+=1
+	return "L"+str(L_count)
+    
+class Synth:
+	def __init__(self, code, addr=None):
+		self.code=code
+		self.addr=addr
 
 
 root=Node("PROGRAM")
@@ -74,8 +166,14 @@ tokens = [
 
 start = 'start'
 
-"""def p_error(p):
-    print('Syntax error in input! Parser State')"""
+def p_error(p):
+
+	print('Syntax error in input at line number %d' % p.lineno)
+	while True:
+		tok = parser.token()
+		if not tok or tok.type == ';': 
+			break
+	parser.restart()
 	
 def p_args(p):
 	'''args : IDENTIFIER
@@ -95,7 +193,6 @@ def p_args(p):
 		p[0] = Node("INC_DEC",[lc,rc])
 	else:
 		rc=Node(p[1])
-		# print(p[1].children)
 		p[0] =rc
 
 def p_MultiplicativeExpression(p):
@@ -104,45 +201,10 @@ def p_MultiplicativeExpression(p):
 	| MultiplicativeExpression '/' args
 	| MultiplicativeExpression '%' args
     '''
-    # if len(list(p))==4:
-    #     print(p[:])
-    #     t1 = flatten(p[1])[0]
-    #     t2 = flatten(p[3])[0]
-    #     if t1 in symbol_table:
-    #         if symbol_table[t1]['valid']:
-    #             t1 = symbol_table[t1]['value']
-    #         else:
-    #             print("error line: Undeclared variable", t1)
-    #             t1 = symbol_table[t1]['value']
-    #             return
-
-    #     if t2 in symbol_table:
-    #         if symbol_table[t2]['valid']:
-    #             t2 = symbol_table[t2]['value']
-    #         else:
-    #             print("error line: Undeclared variable", t2)
-    #             t2 = symbol_table[t2]['value']
-    #             return
-
-    #     if t1 == None:
-    #     	valid = 0
-    #     elif t2 == None:
-    #     	valid = 0
-    #     else:
-    #     	valid = 1
-    #     if valid:
-	   #      if p[2]=='*':
-	   #          p[0] = t1*t2
-	   #      elif p[2]=='/':
-	   #          p[0] = t1/t2
-	   #      elif p[2]=='%':
-	   #          p[0] = t1%t2
-    # else:
-    #     p[0] = p[1:]
+    
     if len(list(p))==4:
     	p[0]=Node(p[2],[p[1],p[3]])
     else:
-    	# print(p[1])
     	p[0]=p[1]
 
 		
@@ -151,44 +213,9 @@ def p_AdditiveExpression(p):
         | AdditiveExpression '+' MultiplicativeExpression
         | AdditiveExpression '-' MultiplicativeExpression
     '''
-    # if len(list(p))==4:
-    #     t1 = flatten(p[1])[0]
-    #     t2 = flatten(p[3])[0]
-    #     if t1 in symbol_table:
-    #         if symbol_table[t1]['valid']:
-    #             t1 = symbol_table[t1]['value']
-    #         else:
-    #             print("error line: Undeclared variable",t1)
-    #             t1 = symbol_table[t1]['value']
-    #             return
-
-    #     if t2 in symbol_table:
-    #         if symbol_table[t2]['valid']:
-    #             t2 = symbol_table[t2]['value']
-    #         else:
-    #             print("error line: Undeclared variable",t2)
-    #             t2 = symbol_table[t2]['value']
-    #             return
-
-    #     if t1 == None:
-    #     	valid = 0
-    #     elif t2 == None:
-    #     	valid = 0
-    #     else:
-    #     	valid = 1
-    #     if valid:        
-	   #      if p[2]=='+':
-	   #          p[0] = t1+t2
-	   #      elif p[2]=='-':
-	   #          p[0] = t1-t2
-    # else:
-    #     p[0] = p[1:]
     if len(list(p))==4:
-    	#print(p[2])
-    	#print(p[1],p[3])
     	p[0]=Node(p[2],[p[1],p[3]])
     else:
-    	# print(p[1])
     	p[0]=p[1]
     
 
@@ -205,8 +232,11 @@ def p_arithmeticExp(p):
 def p_start(p):
 	'''start : OPENTAG statement'''
 	root.set([p[2]])
-	#root.PrintTree()
+	print("\n\nAbstract Syntax Tree\n")
 	root.indent_tree()
+	print("\n\nIntermediate 3-Address Code\n")
+	S=root.gen_icg()
+	print(S.code)
 
 def p_states(p):
 	'''states : assignment
@@ -224,8 +254,6 @@ def p_states(p):
 
 	'''
 	if len(list(p))!=2:
-		#rc=Node(p[2])
-		#p[0]=Node("EXPR",[p[1],rc]) #postfix
 		p[0]=p[1]
 	else:
 		p[0]=p[1]
@@ -234,10 +262,14 @@ def p_statement(p):
 	'''statement : states statement
 				   | end
 	'''
-	if(len(list(p))==3):
-		p[0]=Node("SEQ",[p[1],p[2]])
+	if len(list(p))==3:
+		if p[2] is not None:
+			p[0] = Node("SEQ",[p[1],p[2]])
+		else:
+			p[0] = Node("SEQ",[p[1]])
 	else:
-		p[0]=None
+		#print("reached end")
+		p[0] = None
 	
 def p_assignmentOperator(p):
     '''assignmentOperator : '='
@@ -257,12 +289,6 @@ def p_params(p):
 	if(len(list(p))==2):
 		p[0] = p[1]
 	else:
-		# x = flatten(p[3])
-		# p[0] = []
-		# p[0].append(p[1][0])
-		# for val in x:
-		# 	p[0].append(val)
-		#rc = Node(p[2])
 		p[0] = Node("PARAMS",[p[1],p[3]])
 	
 def p_assignment(p):
@@ -273,133 +299,39 @@ def p_assignment(p):
 	
 	if len(list(p)) == 5:
 		lc = Node(p[1])
-		#rc = Node(p[4])
-		#print(p[3])
 		p[0] = Node("=",[lc,p[3]])
 	else:
 		c1 = Node(p[1])
-		#c2 = Node(p[2])
-		#c3 = Node(p[3])
-		#c5 = Node(p[5])
-		#c6 = Node(p[6])
 		p[0] = Node("=",[c1,p[4]])
-
-	# if len(list(p))>5:
-	# 	# variable = flatten(p[1])[0]
-	# 	# symbol_table[variable]['valid'] = True
-	# 	# print(p[4])
-	# 	# symbol_table[variable]['value']=p[4]
-	# 	# symbol_table[variable]['type']= "array_identifier"
-		
-		
-	# if len(list(p))==5:
-	# 	print(p[:])
-	# 	variable = flatten(p[1])[0]
-	# 	p[0] = symbol_table[variable]['value']
-	# 	symbol_table[variable]['valid'] = True
-	# 	rhs = flatten(p[3])[0]
-	# 	if variable in symbol_table:
-	# 		if symbol_table[variable]['valid']:
-	# 			pass
-	# 			# if symbol_table[variable]['value']!="None":
-	# 			# 	rhs = symbol_table[variable]['value']
-	# 			# 	print(rhs)
-	# 		else:
-	# 			print("error line:Undeclared variable",symbol_table[variable]["token"],"   rhs = ", rhs, 'lhs = ',symbol_table[variable]["token"])
-	# 	if p[2][0]=='=':
-	# 		p[0] = rhs
-			
-	# 	else:
-	# 		if(p[0]== 'None'):
-	# 			print("error line: Undeclared variable",symbol_table[variable]["token"],"   rhs = ", rhs, 'lhs = ',symbol_table[variable]["token"])
-	# 		else:
-	# 			if p[2][0]=='+=':
-	# 				p[0] += rhs
-	# 			elif p[2][0]=='-=':
-	# 				p[0] -= rhs             
-	# 			elif p[2][0]=='*=':
-	# 				p[0] *= rhs
-	# 			elif p[2][0]=='/=':
-	# 				p[0] /= rhs
-	# 			elif p[2][0]=='%=':
-	# 				p[0] %= rhs
-	# 	symbol_table[variable]['value'] = p[0]
-	# else:
-	# 	p[0] = p[1:]
 
 def p_postfixExprInc(p):
 	'''postfixExprInc : IDENTIFIER OP_INC
 	'''
-
-	# if len(list(p))==3:
-	# 	variable = flatten(p[1])[0]
-	# 	if symbol_table[variable]['value']== "None":
-	# 		#error
-	# 		symbol_table[variable]['value']=0
-	# 	symbol_table[variable]['value']+=1
-	# else:
-	# 	p[0] = p[1:]
 	lc = Node(p[1])
-	#rc = Node(p[2])
-	# print(lc,rc)
 	p[0] = Node("POSTFIXINC",[lc])
-	# print(p[0].children)
 	
 def p_postfixExprDec(p):
 	'''postfixExprDec : IDENTIFIER OP_DEC 
 	'''
-	# if len(list(p))==3:
-	# 	variable = flatten(p[1])[0]
-	# 	if symbol_table[variable]['value']== "None":
-	# 		#error
-	# 		symbol_table[variable]['value']=0
-	# 	symbol_table[variable]['value']-=1
-	# else:
-	# 	p[0] = p[1:]
 	lc = Node(p[1])
-	#rc = Node(p[2])
 	p[0] = Node("POSTFIXDEC",[lc])
 
 def p_prefixExprInc(p):
 	'''prefixExprInc : OP_INC IDENTIFIER
 	'''
-	# if len(list(p))==3:
-	# 	variable = flatten(p[2])[0]
-	# 	if symbol_table[variable]['value']== "None":
-	# 		#error
-	# 		symbol_table[variable]['value']=0
-	# 	symbol_table[variable]['value']+=1
-	# else:
-	# 	p[0] = p[1:]
-	lc = Node(p[1])
-	#rc = Node(p[2])
+	lc = Node(p[2])
 	p[0] = Node("PREFIXINC",[lc])
 
 def p_prefixExprDec(p):
 	'''prefixExprDec : OP_DEC IDENTIFIER 
 	'''
-	# if len(list(p))==3:
-	# 	variable = flatten(p[2])[0]
-	# 	if symbol_table[variable]['value']== "None":
-	# 		#error
-	# 		symbol_table[variable]['value']=0
-	# 	symbol_table[variable]['value']-=1
-	# else:
-	# 	p[0] = p[1:]
-	lc = Node(p[1])
-	#rc = Node(p[2])
+	lc = Node(p[2])
 	p[0] = Node("PREFIXDEC",[lc])
 
 def p_whileLoop(p):
 	'''whileLoop : WHILE '(' conditionalExp ')' '{' block '}'
 	'''
-	#c1 = Node(p[1])
-	#c2 = Node(p[2])
-	#c4 = Node(p[4])
-	#c5 = Node(p[5])
-	#c7 = Node(p[7])
 	p[0] = Node("WHILE",[p[3],p[6]])
-	# print(p[0])
 	
 def p_forEach(p):
 	'''forEach : FOREACH '(' IDENTIFIER AS IDENTIFIER ')' '{' block '}'
@@ -434,47 +366,6 @@ def p_conditionalExp(p):
 		p[0] = Node(p[2],[p[1],p[3]])
 	elif l==7:
 		p[0] = Node(p[4],[p[2],p[6]])
-	# print(p[0])
-	# if len(list(p))==4:
-	# 	t1 = flatten(p[1])[0]
-	# 	if t1 in symbol_table:
-	# 		if symbol_table[t1]['valid']:
-	# 			t1 = symbol_table[t1]['value']
-	# 	t2 = flatten(p[3])[0]
-	# 	if t2 in symbol_table:
-	# 		if symbol_table[t2]['valid']:
-	# 			t2 = symbol_table[t2]['value']
-	# 	if t1 == None:
-	# 		valid = 0
-	# 		print("error line: Invalid type", t1 ,"for",flatten(p[1])[0])
-	# 	elif t2 == None:
-	# 		valid = 0
-	# 		print("error line: Invalid type", t2 ,"for",flatten(p[1])[0])
-	# 	else:
-	# 		valid = 1
-	# 	if valid:
-	# 		if p[2][0]=='<':
-	# 			p[0] = t1 < t2
-	# 		elif p[2][0]=='>':
-	# 			p[0] = t1 > t2
-	# 		elif p[2][0]=='<=':
-	# 			p[0] = t1 <= t2
-	# 		elif p[2][0]=='>=':
-	# 			p[0] = t1 >= t2
-	# 		elif p[2][0]=='==':
-	# 			p[0] = t1 == t2
-	# 		elif p[2][0]=='!=':
-	# 			p[0] = t1 != t2
-	# 		elif p[2][0]=='<>':
-	# 			p[0] = t1 != t2
-	# 		elif p[2][0]=='&&' or p[2][0]=='and':
-	# 			p[0] = t1 and t2
-	# 		elif p[2][0]=='||' or p[2][0]=='or':
-	# 			p[0] = t1 or t2
-	# 		print('Cond',p[0])
-
-	# else:
-	# 	p[0] = p[1:]
 	
 
 def p_logicalOp(p):
@@ -482,7 +373,6 @@ def p_logicalOp(p):
 				 | OP_LOR
 				 | OP_XOR
 	'''
-	#p[0] = 
 
 def p_condArgs(p):
 	''' condArgs : IDENTIFIER
@@ -492,11 +382,9 @@ def p_condArgs(p):
 	'''
 	if(type(p[1])=='str'):
 		lc = Node(p[1])
-		#print(p[1])
 		p[0] = lc
 	else:
 		p[0] = p[1]
-	#print(type(p[1]))
 	
 
 def p_block(p):
@@ -504,7 +392,10 @@ def p_block(p):
 			 |
 	'''
 	if len(list(p))==3:
-		p[0] = Node("SEQ",[p[1],p[2]])
+		if p[2] is not None:
+			p[0] = Node("SEQ",[p[1],p[2]])
+		else:
+			p[0] = Node("SEQ",[p[1]])
 	else:
 		p[0] = None
 
@@ -513,24 +404,18 @@ def p_return(p):
 			  | RETURN arithmeticExp ";"
 	'''
 	if(len(list(p))==3):
-		#lc=Node(p[1])
-		#rc=Node(p[2])
-		p[0] = Node("RETURN",[])
+		p[0] = Node("RETURN")
 	else:
-		#lc=Node(p[1])
-		#rc=Node(p[3])
 		p[0]=Node("RETURN",[p[2]])
 
 def p_break(p):
 	'''break : BREAK ";"
 	'''
-	#rc = Node(p[2])
-	p[0]=Node(p[1],[])
+	p[0]=Node(p[1])
 
 def p_continue(p):
 	'''continue : CONTINUE ";"
 	'''
-	#rc = Node(p[2])
 	p[0] = Node(p[1])
 
 def p_echo(p):
@@ -538,12 +423,8 @@ def p_echo(p):
 			| ECHO arithmeticExp ";"
 	'''
 	if(len(list(p))==3):
-		#lc=Node(p[1])
-		#rc=Node(p[2])
 		p[0] = Node("ECHO")
 	else:
-		#lc=Node(p[1])
-		#rc=Node(p[3])
 		p[0]=Node("ECHO",[p[2]])
 
 def p_print(p):
@@ -557,4 +438,3 @@ def p_print(p):
 
 def p_end(p):
  	'''end : CLOSETAG'''
- 	#root.PrintTree()
