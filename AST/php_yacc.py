@@ -64,17 +64,40 @@ class Node:
 			return Synth(code, t)
 
 		# len(ch)==3 for FOREACH
+		if len(ch)==3:
+			#foreach 
+			l1=label() #the loop body itself
+			l2=label() #outside the loop 
+			s2=ch[2].gen_icg() #code of the loop itself
+			s0=ch[0].gen_icg()
+			s1=ch[1].gen_icg()
+			t1=temp()
+			code1=s0.addr+"[$i]\n"
+			obj=Synth(code1,t1)
+			code="$i=0;\n"+l1+": "+"if ($i>length("+s0.addr+")) goto "+l2+"\n"+t1+"="+obj.code
+			code+=s1.addr+"="+t1+"\n"+s2.code+"$i=$i*4\ngoto "+l1+"\n"+l2+": \n"
+			t=None
+			return Synth(code,t)
+			
+
 		if len(ch)==2:
 			#Synth objects
 			s1=ch[0].gen_icg()
 			s2=ch[1].gen_icg()
 			arith="+-*/%"
 			logic="<> <= >= == !="
+			aug_asgn=["+=","-=","*=","/=","%="]
 			t=""
 			code=""
 			if self.type=="=":
 				t=None
 				code=s1.code+s2.code+s1.addr+"="+s2.addr+"\n"
+			elif self.type in aug_asgn:
+				t1=temp()
+				code1=t1+"="+s1.addr+self.type[0]+s2.addr+"\n"
+				obj=Synth(code1,t1)
+				t=None
+				code=s1.code+s2.code+code1+s1.addr+"="+obj.addr+"\n"
 			elif self.type in arith:
 				t=temp()
 				code=s1.code+s2.code+t+"="+s1.addr+self.type+s2.addr+"\n"
@@ -110,6 +133,8 @@ class Node:
 				t=None
 				code=s1.code
 			return Synth(code,t)
+
+
 		
 			
 T_count=0
@@ -166,14 +191,18 @@ tokens = [
 
 start = 'start'
 
+'''
 def p_error(p):
 
-	print('Syntax error in input at line number %d' % p.lineno)
+	print('Syntax error in input at line number %d' % lex.lineno)
+	
 	while True:
 		tok = parser.token()
 		if not tok or tok.type == ';': 
 			break
 	parser.restart()
+	
+'''
 	
 def p_args(p):
 	'''args : IDENTIFIER
@@ -285,7 +314,7 @@ def p_assignmentOperator(p):
 def p_params(p):
 	'''params : args
 			  | args ',' params
-	'''
+	'''	
 	if(len(list(p))==2):
 		p[0] = p[1]
 	else:
@@ -299,7 +328,7 @@ def p_assignment(p):
 	
 	if len(list(p)) == 5:
 		lc = Node(p[1])
-		p[0] = Node("=",[lc,p[3]])
+		p[0] = Node(p[2].type,[lc,p[3]])
 	else:
 		c1 = Node(p[1])
 		p[0] = Node("=",[c1,p[4]])
