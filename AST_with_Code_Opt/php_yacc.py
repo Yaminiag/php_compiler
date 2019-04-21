@@ -196,6 +196,23 @@ class Node:
 			return Synth(code, t)
 
 		# len(ch)==3 for FOREACH
+		if len(ch)==3:
+			#foreach 
+			l1=label() #the loop body itself
+			l2=label() #outside the loop 
+			s2=ch[2].gen_icg() #code of the loop itself
+			s0=ch[0].gen_icg()
+			s1=ch[1].gen_icg()
+			t1=temp()
+			t2 = temp()
+			t3 = temp()
+			code1=s0.addr+"["+t2+"]\n"
+			obj=Synth(code1,t1)
+			code="$i=0;\n"+l1+": "+"if ($i>length("+s0.addr+")) goto "+l2+"\n"+t2+"=$i*4\n"+t1+"="+obj.code
+			code+=s1.addr+"="+t1+"\n"+s2.code+t3+"=$i+1\n"+"$i="+t3+"\ngoto "+l1+"\n"+l2+": \n"
+			t=None
+			return Synth(code,t)
+			
 		if len(ch)==2:
 			#Synth objects
 			s1=ch[0].gen_icg()
