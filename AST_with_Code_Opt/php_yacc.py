@@ -2,15 +2,20 @@ from php_lex import symbol_table
 import copy
 import re
 
-stored_constants=dict()	
+stored_constants=dict()
+stored_copies=dict()
 
-class Node: 
+class Node:
+
+	assign_lhs=False
+	 
 	def __init__(self,type,children=None):
           self.type = type
           if children:
                self.children = children
           else:
                self.children = [ ]
+    
 	def PrintTree(self):
  		ch=self.children
  		if len(ch)==0:
@@ -29,6 +34,9 @@ class Node:
  			print(self.type)
  			if ch[2] is not None:
  				ch[2].PrintTree()
+ 				
+ 	def set_assign_lhs(self):
+ 		self.assign_lhs=True    	
  				
  	def indent_tree(self, level=0):
 		print '\t' * level + repr(self.type)
@@ -54,6 +62,58 @@ class Node:
 		elif self.type=="%":
 			ans=s1.type%s2.type
 		return ans
+	
+	def unfold_incdec(self):
+		ch=self.children
+		for c in ch:
+			c.unfold_incdec()
+		incdec=["POSTFIXINC","POSTFIXDEC","PREFIXINC","PREFIXDEC"]
+		if self.type in incdec:
+			op=""
+			if "INC" in self.type:
+				op="+"
+			else:
+				op="-"
+			n_1=Node(1)
+			var=self.children[0]
+			opnode=Node(op,[var,n_1])
+			self.type="="
+			lhs=Node(var.type)
+			lhs.set_assign_lhs()
+			self.set([lhs,opnode])
+		
+	def copy_propagation(self):
+		global stored_copies
+		ch=self.children
+		stops=["WHILE", "FOREACH"]
+		for c in ch:
+			if c.type not in stops and c.type!="=":
+				c.copy_propagation()
+			elif c.type=="=":
+				var=c.children[0].type
+				val=c.children[1].type
+				if isinstance(val, str) and val[0]=="$":
+					stored_copies[var]=val
+					print(stored_copies)
+				else:
+					c.copy_propagation()
+			else:
+				stored_copies=dict()
+				c.copy_propagation()
+						
+		for c in ch:
+			if c.type in stored_copies and c.assign_lhs==False:
+				var=c.type
+				val=stored_copies[var]
+				while val in stored_copies:
+					var=val
+					val=stored_copies[var]
+				c.type=stored_copies[var]
+		if self.type=="=":
+			var=ch[0].type
+			val=ch[1].type
+			if isinstance(val, str) and val[0]=="$":
+				stored_copies[var]=val
 		
 	def constant_folding(self):
 		#to add string concatenation
@@ -93,9 +153,16 @@ class Node:
 			else:
 				stored_constants=dict()
 				c.constant_propagation()
+				
 			c.constant_folding()
-		if self.type in stored_constants:
-			self.type=stored_constants[self.type]
+		for c in ch:
+			if c.type in stored_constants and c.assign_lhs==False:
+				c.type=stored_constants[c.type]
+		if self.type=="=":
+			var=ch[0].type
+			val=ch[1].type
+			if isinstance(val, (int, float, long)):
+				stored_constants[var]=val
 		
 	def gen_icg(self):	
 		ch=self.children
@@ -165,7 +232,7 @@ class Node:
 					op="+"
 				else:
 					op="-"
-				code=s1.addr+"="+s1.addr+op+"1\n"
+				code=str(s1.addr)+"="+str(s1.addr)+op+"1\n"
 			elif self.type in prints:
 				t=None
 				code=self.type.lower()+" "+s1.addr+"\n"
@@ -295,7 +362,11 @@ def p_start(p):
 	root.set([p[2]])
 	print("\n\nAbstract Syntax Tree\n")
 	root.indent_tree()
+	print("\n\nAfter Copy Propagation\n")
+	root.copy_propagation()
+	root.indent_tree()
 	print("\n\nAfter Constant Folding and Propagation\n")
+	root.unfold_incdec()
 	root.constant_propagation()
 	root.indent_tree()
 	print("\n\nIntermediate 3-Address Code\n")
@@ -363,9 +434,11 @@ def p_assignment(p):
 	
 	if len(list(p)) == 5:
 		lc = Node(p[1])
+		lc.set_assign_lhs()
 		p[0] = Node("=",[lc,p[3]])
 	else:
 		c1 = Node(p[1])
+		c1.set_assign_lhs()
 		p[0] = Node("=",[c1,p[4]])
 
 def p_postfixExprInc(p):
