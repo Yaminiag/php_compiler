@@ -15,39 +15,24 @@ class Node:
                self.children = children
           else:
                self.children = [ ]
-    
-	def PrintTree(self):
- 		ch=self.children
- 		if len(ch)==0:
- 			print(self.type)
- 		if len(ch)==2:
- 			if ch[0] is not None:
- 				ch[0].PrintTree()
- 			print(self.type)
- 			if ch[1] is not None:
- 				ch[1].PrintTree()
- 		if len(ch)==3:
-	 		if ch[0] is not None:
-	 				ch[0].PrintTree()
- 			if ch[1] is not None:
- 				ch[1].PrintTree()
- 			print(self.type)
- 			if ch[2] is not None:
- 				ch[2].PrintTree()
  				
  	def set_assign_lhs(self):
+ 		#if node is present in LHS of an assignment statement, set attribute to true
  		self.assign_lhs=True    	
  				
  	def indent_tree(self, level=0):
+ 		#tree representation, printed level-wise
 		print '\t' * level + repr(self.type)
 		for child in self.children:
 			if child is not None:
 				child.indent_tree(level+1)
 	    	
 	def set(self, children):
+		#sets children of node to passed list
 		self.children = children
 		
 	def calc(self, s1, s2):
+		#expression evaluation
 		if self.type=="+":
 			ans=s1.type+s2.type
 		elif self.type=="-":
@@ -64,6 +49,7 @@ class Node:
 		return ans
 	
 	def unfold_incdec(self):
+		#check if operator is post- or pre- increment or decrement, and unfold to corresponding '+' or '-' operation
 		ch=self.children
 		for c in ch:
 			c.unfold_incdec()
@@ -82,38 +68,44 @@ class Node:
 			lhs.set_assign_lhs()
 			self.set([lhs,opnode])
 		
-	# def copy_propagation(self):
-	# 	global stored_copies
-	# 	ch=self.children
-	# 	stops=["WHILE", "FOREACH"]
-	# 	for c in ch:
-	# 		if c.type not in stops and c.type!="=":
-	# 			c.copy_propagation()
-	# 		elif c.type=="=":
-	# 			var=c.children[0].type
-	# 			val=c.children[1].type
-	# 			if isinstance(val, str) and val[0]=="$":
-	# 				stored_copies[var]=val
-	# 				print(stored_copies)
-	# 			else:
-	# 				c.copy_propagation()
-	# 		else:
-	# 			stored_copies=dict()
-	# 			c.copy_propagation()
+	def copy_propagation(self):
+		global stored_copies
+		ch=self.children
+		#if loop encountered, might be induction variable and hence need to reinitialize dictionary, so as to not copy propagate
+	 	stops=["WHILE", "FOREACH"]
+	 	for c in ch:
+	 		if c.type not in stops and c.type!="=":
+	 			c.copy_propagation()
+	 		#if assigned to another variable, copy propagate
+	 		elif c.type=="=":
+	 			var=c.children[0].type
+	 			val=c.children[1].type
+	 			if isinstance(val, str) and val[0]=="$":
+	 				stored_copies[var]=val
+	 			else:
+	 				c.copy_propagation()
+	 		else:
+	 			stored_copies=dict()
+	 			c.copy_propagation()
 						
-	# 	for c in ch:
-	# 		if c.type in stored_copies and c.assign_lhs==False:
-	# 			var=c.type
-	# 			val=stored_copies[var]
-	# 			while val in stored_copies:
-	# 				var=val
-	# 				val=stored_copies[var]
-	# 			c.type=stored_copies[var]
-	# 	if self.type=="=":
-	# 		var=ch[0].type
-	# 		val=ch[1].type
-	# 		if isinstance(val, str) and val[0]=="$":
-	# 			stored_copies[var]=val
+	 	for c in ch:
+	 		#if variable not in LHS of assignment, copy propagate
+	 		if c.type in stored_copies and c.assign_lhs==False:
+	 			var=c.type
+	 			val=stored_copies[var]
+	 			#recursively search inside dictionary to find variable to assign to
+	 			while val in stored_copies:
+	 				var=val
+	 				val=stored_copies[var]
+	 			c.type=stored_copies[var]
+	 		#if variable in LHS of assignment, cannot copy propagate in future, so delete entry in dictionary
+	 		elif c.type in stored_copies and c.assign_lhs==True:
+	 			del stored_copies[c.type]
+	 	if self.type=="=":
+	 		var=ch[0].type
+	 		val=ch[1].type
+	 		if isinstance(val, str) and val[0]=="$":
+	 			stored_copies[var]=val
 		
 	def constant_folding(self):
 		#to add string concatenation
@@ -144,6 +136,7 @@ class Node:
 			c.constant_folding()
 			if c.type not in stops and c.type!="=":
 				c.constant_propagation()
+			#if assigning to a constant, update symbol table and make valid true
 			elif c.type=="=":
 				var=c.children[0].type
 				val=c.children[1].type
@@ -151,17 +144,21 @@ class Node:
 					symbol_table[var]['valid']='True'
 					symbol_table[var]['value']=val
 				else:
-
 					c.constant_propagation()
 			else:
+				#if loop encountered, invalidate all so as to not copy propagate (since vairables might be used as loop induction variables)
 				for symbol in symbol_table:
 						symbol_table[symbol]['valid']='False'
 				c.constant_propagation()
 				
 			c.constant_folding()
 		for c in ch:
+			#if valid, and constant value in symbol table and present in RHS of assignment, constant propagate
 			if c.type in symbol_table and c.assign_lhs==False and symbol_table[c.type]['valid']=='True':
 				c.type=symbol_table[c.type]['value']
+			#if on LHS of assignment, it is no more valid to constant propagate and hence invalidate
+			elif c.type in symbol_table and c.assign_lhs==True:
+	 			symbol_table[c.type]['valid']='False'
 		if self.type=="=":
 			var=ch[0].type
 			val=ch[1].type
@@ -214,7 +211,7 @@ class Node:
 			return Synth(code,t)
 			
 		if len(ch)==2:
-			#Synth objects
+			#artihmetic or logical operations, or SEQ in program
 			s1=ch[0].gen_icg()
 			s2=ch[1].gen_icg()
 			arith="+-*/%"
@@ -242,6 +239,7 @@ class Node:
 			return Synth(code,t)
 		
 		if len(ch)==1:
+			#pre- and post- increment and decrement, PRINT, ECHO, RETURN, SEQ, PROGRAM
 			t=""
 			code=""
 			s1=ch[0].gen_icg()
@@ -271,16 +269,19 @@ T_count=0
 L_count=0
 
 def temp():
+	#create temporaries
 	global T_count
 	T_count+=1
 	return "t"+str(T_count)
 	
 def label():
+	#create labels
 	global L_count
 	L_count+=1
 	return "L"+str(L_count)
     
 class Synth:
+	#class holding synthesized attributes of ICG
 	def __init__(self, code, addr=None):
 		self.code=code
 		self.addr=addr
@@ -383,10 +384,12 @@ def p_start(p):
 	print("\n\nAbstract Syntax Tree\n")
 	root.indent_tree()
 	print("\n\nAfter Copy Propagation\n")
-	# root.copy_propagation()
+	if root.children[0] is None:
+		root.set([])
+	root.unfold_incdec()
+	root.copy_propagation()
 	root.indent_tree()
 	print("\n\nAfter Constant Folding and Propagation\n")
-	root.unfold_incdec()
 	root.constant_propagation()
 	root.indent_tree()
 	print("\n\nIntermediate 3-Address Code\n")
