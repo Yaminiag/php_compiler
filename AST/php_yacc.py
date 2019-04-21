@@ -72,10 +72,12 @@ class Node:
 			s0=ch[0].gen_icg()
 			s1=ch[1].gen_icg()
 			t1=temp()
-			code1=s0.addr+"[$i]\n"
+			t2 = temp()
+			t3 = temp()
+			code1=s0.addr+"["+t2+"]\n"
 			obj=Synth(code1,t1)
-			code="$i=0;\n"+l1+": "+"if ($i>length("+s0.addr+")) goto "+l2+"\n"+t1+"="+obj.code
-			code+=s1.addr+"="+t1+"\n"+s2.code+"$i=$i*4\ngoto "+l1+"\n"+l2+": \n"
+			code="$i=0;\n"+l1+": "+"if ($i>length("+s0.addr+")) goto "+l2+"\n"+t2+"=$i*4\n"+t1+"="+obj.code
+			code+=s1.addr+"="+t1+"\n"+s2.code+t3+"=$i+1\n"+"$i="+t3+"\ngoto "+l1+"\n"+l2+": \n"
 			t=None
 			return Synth(code,t)
 			
