@@ -14,6 +14,7 @@ for kw in keywords:
 def t_OPENTAG(t):
 	r"<\?php"
 	t.type = "OPENTAG"
+	t.lexer.lineno = 0
 	return t
 
 def t_CLOSETAG(t):
@@ -266,5 +267,5 @@ def t_newline(t):
 	t.lexer.lineno += t.value.count("\n")
 
 def t_error(t):
-	print("Illegal character '%s'" % t.value[0])
+	print("Illegal character '%s'" % t.value[0]+"line"+t.lexer.lineno)
 	t.lexer.skip(1)

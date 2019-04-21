@@ -82,38 +82,38 @@ class Node:
 			lhs.set_assign_lhs()
 			self.set([lhs,opnode])
 		
-	def copy_propagation(self):
-		global stored_copies
-		ch=self.children
-		stops=["WHILE", "FOREACH"]
-		for c in ch:
-			if c.type not in stops and c.type!="=":
-				c.copy_propagation()
-			elif c.type=="=":
-				var=c.children[0].type
-				val=c.children[1].type
-				if isinstance(val, str) and val[0]=="$":
-					stored_copies[var]=val
-					print(stored_copies)
-				else:
-					c.copy_propagation()
-			else:
-				stored_copies=dict()
-				c.copy_propagation()
+	# def copy_propagation(self):
+	# 	global stored_copies
+	# 	ch=self.children
+	# 	stops=["WHILE", "FOREACH"]
+	# 	for c in ch:
+	# 		if c.type not in stops and c.type!="=":
+	# 			c.copy_propagation()
+	# 		elif c.type=="=":
+	# 			var=c.children[0].type
+	# 			val=c.children[1].type
+	# 			if isinstance(val, str) and val[0]=="$":
+	# 				stored_copies[var]=val
+	# 				print(stored_copies)
+	# 			else:
+	# 				c.copy_propagation()
+	# 		else:
+	# 			stored_copies=dict()
+	# 			c.copy_propagation()
 						
-		for c in ch:
-			if c.type in stored_copies and c.assign_lhs==False:
-				var=c.type
-				val=stored_copies[var]
-				while val in stored_copies:
-					var=val
-					val=stored_copies[var]
-				c.type=stored_copies[var]
-		if self.type=="=":
-			var=ch[0].type
-			val=ch[1].type
-			if isinstance(val, str) and val[0]=="$":
-				stored_copies[var]=val
+	# 	for c in ch:
+	# 		if c.type in stored_copies and c.assign_lhs==False:
+	# 			var=c.type
+	# 			val=stored_copies[var]
+	# 			while val in stored_copies:
+	# 				var=val
+	# 				val=stored_copies[var]
+	# 			c.type=stored_copies[var]
+	# 	if self.type=="=":
+	# 		var=ch[0].type
+	# 		val=ch[1].type
+	# 		if isinstance(val, str) and val[0]=="$":
+	# 			stored_copies[var]=val
 		
 	def constant_folding(self):
 		#to add string concatenation
@@ -137,6 +137,7 @@ class Node:
 				
 	def constant_propagation(self):
 		global stored_constants
+		global symbol_table
 		ch=self.children
 		stops=["WHILE", "FOREACH"]
 		for c in ch:
@@ -147,22 +148,26 @@ class Node:
 				var=c.children[0].type
 				val=c.children[1].type
 				if isinstance(val, (int, float, long)):
-					stored_constants[var]=val
+					symbol_table[var]['valid']='True'
+					symbol_table[var]['value']=val
 				else:
+
 					c.constant_propagation()
 			else:
-				stored_constants=dict()
+				for symbol in symbol_table:
+						symbol_table[symbol]['valid']='False'
 				c.constant_propagation()
 				
 			c.constant_folding()
 		for c in ch:
-			if c.type in stored_constants and c.assign_lhs==False:
-				c.type=stored_constants[c.type]
+			if c.type in symbol_table and c.assign_lhs==False and symbol_table[c.type]['valid']=='True':
+				c.type=symbol_table[c.type]['value']
 		if self.type=="=":
 			var=ch[0].type
 			val=ch[1].type
 			if isinstance(val, (int, float, long)):
-				stored_constants[var]=val
+				symbol_table[var]['valid']='True'
+				symbol_table[var]['value']=val
 		
 	def gen_icg(self):	
 		ch=self.children
@@ -299,9 +304,7 @@ tokens = [
 
 start = 'start'
 
-def p_error(p):
 
-	print('Syntax error in input at line number %d' % p.lineno)
 	
 def p_args(p):
 	'''args : IDENTIFIER
@@ -363,7 +366,7 @@ def p_start(p):
 	print("\n\nAbstract Syntax Tree\n")
 	root.indent_tree()
 	print("\n\nAfter Copy Propagation\n")
-	root.copy_propagation()
+	# root.copy_propagation()
 	root.indent_tree()
 	print("\n\nAfter Constant Folding and Propagation\n")
 	root.unfold_incdec()

@@ -6,6 +6,20 @@ import ply.lex as lex
 import ply.yacc as yacc
 
 lex.lex(debug=0)
+
+# def p_error(p):
+
+# 	print('Syntax error in input at line number %d' % p.lineno)
+
+def p_error(p):
+     if p:
+          print("Syntax error at token "+p.type+" at line"+str(p.lineno))
+          # Just discard the token and tell the parser it's okay.
+          parser.errok()
+     else:
+          print("Syntax error at EOF")
+          
+
 parser = yacc.yacc(debug=0)
 
 with open('input.php','r') as f:
@@ -19,6 +33,8 @@ while True:
  if not tok:
 	 break      # No more input
  print(tok)
+
+
 
 x = parser.parse(input_str)
 
